@@ -9,6 +9,8 @@ routes.put('/clinic/:id', doctorController.updateClinic)
 routes.delete('/clinic/:id', doctorController.deleteClinic);
 
 routes.post('/expense', doctorController.addExpense)
-
+routes.get('/expense', doctorController.getAllExpenses);
+routes.delete('/expense/:id', doctorController.deleteExpense);
+routes.post('/expense/:id/payment', doctorController.addPayment);
 
 module.exports = routes;    

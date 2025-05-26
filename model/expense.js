@@ -33,10 +33,6 @@ const Expense = sequelize.define('Expense', {
         type: DataTypes.DECIMAL(12, 2),
         defaultValue: 0
     },
-    total_amount: {
-        type: DataTypes.DECIMAL(12, 2),
-        allowNull: false
-    },
     payment_mode: {
         type: DataTypes.STRING(50),
         allowNull: true
