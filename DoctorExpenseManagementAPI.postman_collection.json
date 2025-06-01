@@ -1,0 +1,173 @@
+{
+  "info": {
+    "name": "DoctorExpenseManagementAPI",
+    "_postman_id": "dema-collection-001",
+    "description": "APIs for Doctor Expense Management",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Doctor Register",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Dr. John Doe\",\n  \"email\": \"johndoe@example.com\",\n  \"password\": \"strongpassword\",\n  \"degree\": \"MBBS\",\n  \"contact_no\": \"+1234567890\",\n  \"specialty\": \"Cardiology\",\n  \"access_status\": \"Requested\"\n}"
+        },
+        "url": { "raw": "http://localhost:3000/auth/doctor/register", "protocol": "http", "host": ["localhost"], "port": "3000", "path": ["auth", "doctor", "register"] }
+      }
+    },
+    {
+      "name": "Doctor Sign In",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"johndoe@example.com\",\n  \"password\": \"strongpassword\"\n}"
+        },
+        "url": { "raw": "http://localhost:3000/auth/doctor/signin", "protocol": "http", "host": ["localhost"], "port": "3000", "path": ["auth", "doctor", "signin"] }
+      }
+    },
+    {
+      "name": "Add Clinic",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{doctor_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Sunrise Clinic\",\n  \"address\": \"123 Main Street, Cityville\",\n  \"admin_name\": \"Dr. John Doe\",\n  \"additional_info\": \"Open 9am-5pm, Mon-Fri\",\n  \"contact_no\": \"+1234567890\"\n}"
+        },
+        "url": { "raw": "http://localhost:3000/doctor/clinic", "protocol": "http", "host": ["localhost"], "port": "3000", "path": ["doctor", "clinic"] }
+      }
+    },
+    {
+      "name": "Get Clinic List",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{doctor_token}}" }],
+        "url": { "raw": "http://localhost:3000/doctor/getClinicList", "protocol": "http", "host": ["localhost"], "port": "3000", "path": ["doctor", "getClinicList"] }
+      }
+    },
+    {
+      "name": "Update Clinic",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{doctor_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"address\": \"456 New Address\",\n  \"admin_name\": \"Dr. Jane Smith\",\n  \"additional_info\": \"Updated info\",\n  \"contact_no\": \"+1987654321\"\n}"
+        },
+        "url": { "raw": "http://localhost:3000/doctor/clinic/1", "protocol": "http", "host": ["localhost"], "port": "3000", "path": ["doctor", "clinic", "1"] }
+      }
+    },
+    {
+      "name": "Delete Clinic",
+      "request": {
+        "method": "DELETE",
+        "header": [{ "key": "Authorization", "value": "Bearer {{doctor_token}}" }],
+        "url": { "raw": "http://localhost:3000/doctor/clinic/1", "protocol": "http", "host": ["localhost"], "port": "3000", "path": ["doctor", "clinic", "1"] }
+      }
+    },
+    {
+      "name": "Add Expense",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{doctor_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"notes\": \"Consultation charges for April\",\n  \"expense_date\": \"2024-04-30\",\n  \"category\": \"Consultation\",\n  \"billed_amount\": 5000.00,\n  \"tds_deducted\": true,\n  \"tds_amount\": 500.00,\n  \"total_amount\": 4500.00,\n  \"amount_received\": 4500.00,\n  \"payment_mode\": \"Bank Transfer\",\n  \"payment_status\": \"Received\",\n  \"clinic_id\": 1\n}"
+        },
+        "url": { "raw": "http://localhost:3000/doctor/expense", "protocol": "http", "host": ["localhost"], "port": "3000", "path": ["doctor", "expense"] }
+      }
+    },
+    {
+      "name": "Get All Expenses",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{doctor_token}}" }],
+        "url": { "raw": "http://localhost:3000/doctor/expense?page=1&limit=10", "protocol": "http", "host": ["localhost"], "port": "3000", "path": ["doctor", "expense"], "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "10" }] }
+      }
+    },
+    {
+      "name": "Delete Expense",
+      "request": {
+        "method": "DELETE",
+        "header": [{ "key": "Authorization", "value": "Bearer {{doctor_token}}" }],
+        "url": { "raw": "http://localhost:3000/doctor/expense/1", "protocol": "http", "host": ["localhost"], "port": "3000", "path": ["doctor", "expense", "1"] }
+      }
+    },
+    {
+      "name": "Add Payment to Expense",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{doctor_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"date\": \"2024-05-27\",\n  \"amount\": 1500.00\n}"
+        },
+        "url": { "raw": "http://localhost:3000/doctor/expense/1/payment", "protocol": "http", "host": ["localhost"], "port": "3000", "path": ["doctor", "expense", "1", "payment"] }
+      }
+    },
+    {
+      "name": "Admin Register",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Admin User\",\n  \"email\": \"admin@example.com\",\n  \"password\": \"adminpassword\"\n}"
+        },
+        "url": { "raw": "http://localhost:3000/auth/admin/register", "protocol": "http", "host": ["localhost"], "port": "3000", "path": ["auth", "admin", "register"] }
+      }
+    },
+    {
+      "name": "Admin Sign In",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"adminpassword\"\n}"
+        },
+        "url": { "raw": "http://localhost:3000/auth/admin/signin", "protocol": "http", "host": ["localhost"], "port": "3000", "path": ["auth", "admin", "signin"] }
+      }
+    },
+    {
+      "name": "Get Doctor List (Admin)",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
+        "url": { "raw": "http://localhost:3000/admin/getDoctorList?page=1&limit=10", "protocol": "http", "host": ["localhost"], "port": "3000", "path": ["admin", "getDoctorList"], "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "10" }] }
+      }
+    },
+    {
+      "name": "Update Doctor Access Status",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"access_status\": \"Granted\"\n}"
+        },
+        "url": { "raw": "http://localhost:3000/admin/updateDoctorAccessStatus/1/accessStatus", "protocol": "http", "host": ["localhost"], "port": "3000", "path": ["admin", "updateDoctorAccessStatus", "1", "accessStatus"] }
+      }
+    }
+  ]
+}

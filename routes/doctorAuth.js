@@ -12,5 +12,7 @@ routes.post('/expense', doctorController.addExpense)
 routes.get('/expense', doctorController.getAllExpenses);
 routes.delete('/expense/:id', doctorController.deleteExpense);
 routes.post('/expense/:id/payment', doctorController.addPayment);
+routes.get('/getAllClinicNames', doctorController.getAllClinicNames);
+routes.get('/getReport', doctorController.getReport);
 
 module.exports = routes;    
