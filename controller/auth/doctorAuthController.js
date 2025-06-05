@@ -11,10 +11,14 @@ var doctorAuthController = {
 
             // Check if email already exists
             const existing = await Doctor.findOne({ where: { email } });
+            if(existing && existing.access_status !== 'Granted') {
+                // If the email exists and access is not revoked, return an error
+                return res.status(409).json({ message: 'Email already registered.' });
+            }
+
             if (existing) {
                 return res.status(400).json({ message: 'Email already registered.' });
             }
-
             // Create new doctor (password will be hashed by model hook)
             const doctor = await Doctor.create({
                 name,
@@ -39,9 +43,15 @@ var doctorAuthController = {
             if (!doctor) {
                 return res.status(401).json({ message: 'Invalid email or password.' });
             }
+
+            
+
             const isMatch = await bcrypt.compare(password, doctor.password);
             if (!isMatch) {
                 return res.status(401).json({ message: 'Invalid email or password.' });
+            }
+            if (doctor.access_status !== 'Granted') {
+                return res.status(403).json({ message: 'Access not granted. Awaiting for Admin Approval.' });
             }
             // You can set session or JWT here if needed
             const payload = {
