@@ -1,6 +1,7 @@
 const express = require('express')
 const doctorController = require('../controller/doctorController')
 const { clinicAddValidate } = require('../utility/validator')
+const Doctor = require("../model/doctor");
 const routes = express.Router()
 
 // Middleware to check access_status
@@ -13,6 +14,7 @@ async function checkAccessGranted(req, res, next) {
         }
         next();
     } catch (err) {
+        console.log(err)
         res.status(500).json({ message: 'Server error' });
     }
 }
