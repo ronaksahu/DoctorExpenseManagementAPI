@@ -3,6 +3,8 @@ const Expense = require("../model/expense");
 const Payment = require("../model/payment");
 const { Op } = require("sequelize");
 
+const offlineExpenseIdMap = {};
+
 var doctorController = {
   addClinic: async function (req, res) {
     try {
@@ -159,8 +161,9 @@ var doctorController = {
         payment_mode,
         payment_status,
         clinic_id,
+        payment_local_id,
       } = req.body;
-
+      const offline_id = req.body.payment_local_id || null;
       const clinic = await Clinic.findOne({
         where: { id: clinic_id, doctor_id: doctor.id },
       });
@@ -183,6 +186,11 @@ var doctorController = {
         clinic_id,
       });
 
+      // Store offline_id mapping if present
+      if (offline_id) {
+        offlineExpenseIdMap[offline_id] = expense.id;
+      }
+
       // Create payment entry
       if (amount_received > 0) {
         await Payment.create({
@@ -194,6 +202,8 @@ var doctorController = {
 
       res.status(201).json({
         message: "Expense and payment added successfully.",
+        id: expense.id,
+        payment_local_id
       });
     } catch (error) {
       console.error("Error adding expense and payment:", error);
@@ -351,8 +361,17 @@ var doctorController = {
   addPayment: async function (req, res) {
     try {
       const doctor = req.user;
-      const expenseId = req.params.id;
-      const { date, amount } = req.body;
+      const { date, amount, offlineExpenseId } = req.body;
+      var expenseId = req.body.expenseId;
+      console.log(offlineExpenseIdMap)
+      // If offlineExpenseId is present, get the mapped expenseId from the global map
+      if (offlineExpenseId && offlineExpenseIdMap[offlineExpenseId]) {
+        expenseId = offlineExpenseIdMap[offlineExpenseId];
+        // Remove the key after using it
+        delete offlineExpenseIdMap[offlineExpenseId];
+      } else if (offlineExpenseId) {
+        expenseId = offlineExpenseId;
+      }
 
       // Check if the expense belongs to one of the doctor's clinics
       const expense = await Expense.findOne({
@@ -549,6 +568,73 @@ var doctorController = {
       res.status(500).json({ message: "Internal server error." });
     }
   },
+  fullDataLoad: async function (req, res) {
+    try {
+      const doctor = req.user;
+      const clinics = await Clinic.findAll({
+        where: { doctor_id: doctor.id },
+        attributes: [
+          "id",
+          "name",
+          "address",
+          "admin_name",
+          "contact_no",
+          "additional_info",
+          "createdAt",
+          "updatedAt"
+        ],
+      });
+      // Prepare clinicIdNameList: [{ id, name }]
+      const clinicIdNameList = clinics.map(clinic => ({
+        id: clinic.id,
+        name: clinic.name
+      }));
+      const clinicIds = clinics.map((c) => c.id);
+
+      const expenses = await Expense.findAll({
+        where: { clinic_id: clinicIds },
+        include: [{ model: Clinic, as: "clinic", attributes: ["name"] }],
+        order: [["expense_date", "DESC"]],
+      });
+
+      const expenseIds = expenses.map((e) => e.id);
+
+      const payments = await Payment.findAll({
+        where: { expense_id: expenseIds },
+        order: [["payment_date", "ASC"]],
+      });
+
+      // Group payments by expense_id for quick lookup
+      const paymentsByExpense = payments.reduce((acc, payment) => {
+        if (!acc[payment.expense_id]) acc[payment.expense_id] = [];
+        acc[payment.expense_id].push(payment);
+        return acc;
+      }, {});
+
+      // Add received_amount and pending_amount to each expense
+      const expensesWithAmounts = expenses.map((expense) => {
+        const expensePayments = paymentsByExpense[expense.id] || [];
+        const received_amount = expensePayments.reduce(
+          (sum, p) => sum + parseFloat(p.amount),
+          0
+        );
+        const pending_amount =
+          parseFloat(expense.billed_amount) - received_amount;
+        const expenseObj = expense.toJSON();
+        return {
+          ...expenseObj,
+          received_amount,
+          pending_amount,
+        };
+      });
+
+  
+      res.status(200).json({ clinics, expenses: expensesWithAmounts, payments, clinicIdNameList });
+    } catch (error) {
+      console.error("Error loading full data:", error);
+      res.status(500).json({ message: "Internal server error." });
+    }   
+  }
 };
 
 module.exports = doctorController;
