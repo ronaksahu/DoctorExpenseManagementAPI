@@ -203,7 +203,7 @@ var doctorController = {
       res.status(201).json({
         message: "Expense and payment added successfully.",
         id: expense.id,
-        payment_local_id
+        payment_local_id,
       });
     } catch (error) {
       console.error("Error adding expense and payment:", error);
@@ -363,7 +363,7 @@ var doctorController = {
       const doctor = req.user;
       const { date, amount, offlineExpenseId } = req.body;
       var expenseId = req.body.expenseId;
-      console.log(offlineExpenseIdMap)
+      console.log(offlineExpenseIdMap);
       // If offlineExpenseId is present, get the mapped expenseId from the global map
       if (offlineExpenseId && offlineExpenseIdMap[offlineExpenseId]) {
         expenseId = offlineExpenseIdMap[offlineExpenseId];
@@ -581,13 +581,13 @@ var doctorController = {
           "contact_no",
           "additional_info",
           "createdAt",
-          "updatedAt"
+          "updatedAt",
         ],
       });
       // Prepare clinicIdNameList: [{ id, name }]
-      const clinicIdNameList = clinics.map(clinic => ({
+      const clinicIdNameList = clinics.map((clinic) => ({
         id: clinic.id,
-        name: clinic.name
+        name: clinic.name,
       }));
       const clinicIds = clinics.map((c) => c.id);
 
@@ -628,13 +628,143 @@ var doctorController = {
         };
       });
 
-  
-      res.status(200).json({ clinics, expenses: expensesWithAmounts, payments, clinicIdNameList });
+      res.status(200).json({
+        clinics,
+        expenses: expensesWithAmounts,
+        payments,
+        clinicIdNameList,
+      });
     } catch (error) {
       console.error("Error loading full data:", error);
       res.status(500).json({ message: "Internal server error." });
-    }   
-  }
+    }
+  },
+  hospitalWiseReport: async function (req, res) {
+    try {
+      const doctor = req.user;
+      // Get all clinics for the doctor
+      const clinics = await Clinic.findAll({
+        where: { doctor_id: doctor.id },
+        attributes: ["id", "name"],
+      });
+
+      const clinicIds = clinics.map((c) => c.id);
+
+      // Get all expenses for these clinics
+      const expenses = await Expense.findAll({
+        where: { clinic_id: clinicIds },
+        order: [["expense_date", "DESC"]],
+        attributes: [
+          "id",
+          "category",
+          "billed_amount",
+          "clinic_id",
+          "expense_date",
+          "tds_amount",
+          "tds_deducted",
+          "pending_notes",
+          "tds_status",
+        ],
+      });
+
+      const expenseIds = expenses.map((e) => e.id);
+
+      // Get all payments for these expenses
+      const payments = await Payment.findAll({
+        where: { expense_id: expenseIds },
+        attributes: ["id", "payment_date", "amount", "expense_id"],
+        order: [["payment_date", "ASC"]],
+      });
+
+      // Group payments by expense_id
+      const paymentsByExpense = payments.reduce((acc, payment) => {
+        if (!acc[payment.expense_id]) acc[payment.expense_id] = [];
+        acc[payment.expense_id].push(payment);
+        return acc;
+      }, {});
+
+      // Group expenses by clinic and filter out clinics with no expenses
+      const expensesByClinic = clinics
+        .map((clinic) => {
+          const clinicExpenses = expenses
+            .filter((exp) => exp.clinic_id === clinic.id)
+            .map((expense) => {
+              const expensePayments = paymentsByExpense[expense.id] || [];
+              const received_amount = expensePayments.reduce(
+                (sum, p) => sum + parseFloat(p.amount),
+                0
+              );
+              const pending_amount =
+                parseFloat(expense.billed_amount) - received_amount;
+              return {
+                id: expense.id,
+                category: expense.category,
+                billed_amount: expense.billed_amount,
+                received_amount,
+                pending_amount,
+                payments: expensePayments,
+                expense_date: expense.expense_date,
+                tds_amount: expense.tds_amount,
+                tds_deducted: expense.tds_deducted,
+                pending_notes: expense.pending_notes,
+                tds_status: expense.tds_status,
+              };
+            });
+          // Only include clinics with at least one expense
+          if (clinicExpenses.length > 0) {
+            return {
+              clinic_id: clinic.id,
+              clinic_name: clinic.name,
+              expenses: clinicExpenses,
+            };
+          }
+          return null;
+        })
+        .filter((clinic) => clinic !== null);
+
+      res.status(200).json(expensesByClinic);
+    } catch (error) {
+      console.error("Error generating hospital wise report:", error);
+      res.status(500).json({ message: "Internal server error." });
+    }
+  },
+  updateExpenseTDS: async function (req, res) {
+    try {
+      const doctor = req.user;
+      const { expense_id, tds_status, pending_notes } = req.body;
+
+      // Find the expense and ensure it belongs to one of the doctor's clinics
+      const clinics = await Clinic.findAll({
+        where: { doctor_id: doctor.id },
+        attributes: ["id"],
+      });
+      const clinicIds = clinics.map((c) => c.id);
+
+      const expense = await Expense.findOne({
+        where: { id: expense_id, clinic_id: clinicIds },
+      });
+
+      if (!expense) {
+        return res
+          .status(404)
+          .json({
+            message: "Expense not found or does not belong to your clinics.",
+          });
+      }
+
+      // Update fields
+      expense.tds_status = tds_status;
+      expense.pending_notes = pending_notes;
+      await expense.save();
+
+      res
+        .status(200)
+        .json({ message: "Expense updated successfully.", expense });
+    } catch (error) {
+      console.error("Error updating expense TDS status:", error);
+      res.status(500).json({ message: "Internal server error." });
+    }
+  },
 };
 
 module.exports = doctorController;

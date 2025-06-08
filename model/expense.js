@@ -12,6 +12,10 @@ const Expense = sequelize.define('Expense', {
         type: DataTypes.TEXT,
         allowNull: true
     },
+    pending_notes: {
+        type: DataTypes.TEXT,
+        allowNull: true
+    },
     expense_date: {
         type: DataTypes.DATEONLY,
         allowNull: false,
@@ -28,6 +32,10 @@ const Expense = sequelize.define('Expense', {
     tds_deducted: {
         type: DataTypes.BOOLEAN,
         defaultValue: false
+    },
+    tds_status: {
+        type: DataTypes.STRING(50),
+        allowNull: true
     },
     tds_amount: {
         type: DataTypes.DECIMAL(12, 2),
