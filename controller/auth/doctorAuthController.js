@@ -1,6 +1,8 @@
 const Doctor = require("../../model/doctor");
+const PasswordReset = require("../../model/passwordReset");
 const bcrypt = require('bcrypt');
 const utils = require("../../utility/utils");
+const { Op } = require('sequelize');
 // This controller handles doctor registration and sign-in
 
 
@@ -80,6 +82,68 @@ var doctorAuthController = {
             });
         } catch (error) {
             console.error('Sign in error:', error);
+            return res.status(500).json({ message: 'Internal server error.' });
+        }
+    },
+    sendOtp: async function(req, res) {
+        try {
+            const { email } = req.body;
+            const doctor = await Doctor.findOne({ where: { email } });
+            if (!doctor) {
+                return res.status(404).json({ message: 'Doctor not found.' });
+            }
+
+            // Generate OTP
+            const otp = utils.generateOTP();
+
+            const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+            // Save OTP in password_resets table
+            await PasswordReset.create({
+                email,
+                otp,
+                expires_at: expiresAt,
+                used: false
+            });  
+
+            // Send OTP via email
+            const emailResponse = await utils.sendMail(email, otp);
+
+            if (emailResponse.status === 'success') {
+                return res.status(200).json({ message: 'OTP sent successfully.', emailResponse });
+            } else {
+                return res.status(500).json({ message: 'Failed to send OTP.', emailResponse });
+            }            
+
+        } catch (error) {
+            console.error('Send OTP error:', error);
+            return res.status(500).json({ message: 'Internal server error.' });
+        }   
+    },
+    changePassword: async function(req, res) {
+        try {
+            const { email, otp, newPassword } = req.body;
+            // Validate OTP
+            const passwordReset = await PasswordReset.findOne({
+                where: {
+                    email,
+                    otp,
+                    used: false,
+                    expires_at: { [Op.gt]: new Date() } // Check if OTP is still valid
+                }
+            });
+            if (!passwordReset) {
+                return res.status(400).json({ message: 'Invalid OTP.' });
+            }       
+            // Hash new password
+            const hashedPassword = await bcrypt.hash(newPassword, 10);
+            // Update doctor's password
+            await Doctor.update({ password: hashedPassword }, { where: { email } });
+            // Mark OTP as used
+            await passwordReset.update({ used: true });
+            return res.status(200).json({ message: 'Password changed successfully.' });
+        } catch (error) {
+            console.error('Change password error:', error);
             return res.status(500).json({ message: 'Internal server error.' });
         }
     }

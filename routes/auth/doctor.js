@@ -11,6 +11,7 @@ routes.post('/logout', (req, res) => {
     // If using JWT, just instruct client to delete token
     res.status(200).json({ message: 'Doctor logged out successfully.' });
 });
-
+routes.post('/send-otp', doctorAuthController.sendOtp);
+routes.post('/change-password', doctorAuthController.changePassword);
 
 module.exports = routes;

@@ -6,6 +6,7 @@ const doctorRoutes = require('./doctorAuth');
 var utils = require('../utility/utils')
 
 
+
 var router = express.Router()
 
 
@@ -18,5 +19,38 @@ router.use('/auth/doctor', doctorAuth);
 
 router.use('/admin', utils.authenticateToken, utils.isAdmin, adminRoutes);
 router.use('/doctor', utils.authenticateToken, utils.isDoctor, doctorRoutes)
+
+// Send email endpoint
+router.get('/send-email', async (req, res) => {
+  
+
+  const params = {
+    Source: process.env.SES_FROM_EMAIL,
+    Destination: {
+      ToAddresses: ['ronaksahu003@gmail.com'],
+    },
+    Message: {
+      Subject: {
+        Charset: 'UTF-8',
+        Data: "Test Subject",
+      },
+      Body: {
+        Html: {
+          Charset: 'UTF-8',
+          Data: "Hello World",
+        },
+      },
+    },
+  };
+
+  try {
+    const result = await ses.sendEmail(params).promise();
+    res.json({ messageId: result.MessageId });
+  } catch (error) {
+    console.error('SES sendEmail error:', error);
+    res.status(500).json({ error: 'Failed to send email' });
+  }
+});
+
 
 module.exports = router;
